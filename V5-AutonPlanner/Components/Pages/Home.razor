@@ -3,3 +3,27 @@
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+<div class="grid-container">
+  <!-- The background image -->
+  <img src="TopDown.png" alt="Top down view of the vex v5 override field">
+  
+  <!-- The grid overlay -->
+  <div class="grid-overlay">
+    @for (int row = 1; row <= 24; row++)
+    {
+      @for (int col = 1; col <= 24; col++)
+      {
+        var r = row;
+        var c = col;
+        <div class="grid-cell" @onclick="@((e) => CellClicked(r, c))"></div>
+      }
+    }
+  </div>
+</div>
+
+@code {
+    private void CellClicked(int row, int column)
+    {
+        Console.WriteLine($"Grid cell clicked: Row {row}, Column {column}");
+    }
+}
