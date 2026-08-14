@@ -12,6 +12,10 @@
   <div class="sidebar">
     <NavMenu />
 
+    <div class="sidebar-actions px-3 py-2">
+      <button class="btn btn-primary" @onclick="Save">Save</button>
+    </div>
+
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <nav class="nav flex-column">
             @foreach (var point in movepoints)
@@ -40,14 +44,22 @@
         var c = col;
         // Highlight any cell that exists in movepoints
         var isHighlighted = movepoints.Exists(mp => mp.Row == r && mp.Column == c);
+        var index = movepoints.FindIndex(mp => mp.Row == r && mp.Column == c);
+        var displayIndex = index >= 0 ? index + 1 : -1;
         var classes = isHighlighted ? "grid-cell highlight" : "grid-cell";
-        <div class="@classes" @onclick="@((e) => CellClicked(r, c))"></div>
+        <div class="@classes" @onclick="@((e) => CellClicked(r, c))">
+            @if (displayIndex > 0)
+            {
+                <span class="dot-label">@displayIndex</span>
+            }
+        </div>
       }
     }
   </div>
 </div>
 
 </div>
+@using System.Text.Json
 @code {
     private void CellClicked(int row, int column)
     {
@@ -80,5 +92,13 @@
         highlightRow = -1;
         highlightColumn = -1;
         StateHasChanged();
+    }
+
+    // Save action (not implemented)
+    private void Save()
+    {
+        TextWriter writer = new StreamWriter("movepoints.json");
+        JsonSerializer.Serialize(writer, movepoints);
+        writer.Close();
     }
 }

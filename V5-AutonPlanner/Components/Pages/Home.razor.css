@@ -31,6 +31,7 @@
     justify-content: center;
     cursor: pointer;
     background: transparent;
+    position: relative; /* allow absolute positioning of label */
 }
 
 .grid-cell::before {
@@ -62,6 +63,19 @@
     transform: scale(1.8);
     box-shadow: 0 0 6px rgba(0,122,255,0.35);
     opacity: 1;
+}
+
+/* number label on highlighted dots */
+.dot-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    line-height: 1;
+    color: white;
+    font-weight: 600;
+    pointer-events: none; /* labels shouldn't intercept clicks */
 }
 
 /* Home page layout: place sidebar beside the grid */
