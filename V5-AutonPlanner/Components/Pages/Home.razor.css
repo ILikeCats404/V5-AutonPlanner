@@ -18,21 +18,83 @@
     width: 100%;
     height: 100%;
     display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(24, 1fr);
+    /* If the image represents 12ft x 12ft and we want a dot every inch,
+       there should be 12 * 12 = 144 cells per side (144 inches). */
+    grid-template-columns: repeat(144, 1fr);
+    grid-template-rows: repeat(144, 1fr);
 }
 
 .grid-cell {
+    /* center a small circular dot inside each grid cell */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(255, 255, 255, 0.05);
-    transition: background-color 0.2s ease;
+    background: transparent;
 }
 
-.grid-cell:hover {
-    background-color: rgba(255, 0, 0, 0.3);
+.grid-cell::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    /* hidden by default; only highlighted or hovered cells become visible */
+    background-color: transparent;
+    opacity: 0;
+    transition: transform 0.12s ease, background-color 0.12s ease, width 0.12s ease, height 0.12s ease, opacity 0.12s ease;
 }
 
-.grid-cell:active {
-    background-color: rgba(0, 255, 0, 0.3);
+.grid-cell:hover::before {
+    background-color: rgba(255, 0, 0, 0.9);
+    transform: scale(1.4);
+    opacity: 1;
+}
+
+.grid-cell:active::before {
+    background-color: rgba(0, 255, 0, 0.9);
+    transform: scale(1.6);
+    opacity: 1;
+}
+
+/* highlighted cell appearance */
+.grid-cell.highlight::before {
+    background-color: rgba(0, 122, 255, 0.95);
+    transform: scale(1.8);
+    box-shadow: 0 0 6px rgba(0,122,255,0.35);
+    opacity: 1;
+}
+
+/* Home page layout: place sidebar beside the grid */
+.home-main {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 0;
+}
+
+.home-main .sidebar {
+    width: 250px;
+    flex: 0 0 250px;
+    /* keep the sidebar visible while scrolling */
+    position: sticky;
+    top: 1rem;
+    height: calc(100vh - 2rem);
+    overflow: auto;
+    padding-right: 0.5rem;
+}
+
+.home-main .grid-container {
+    flex: 1 1 auto;
+    max-width: none;
+    margin: 0; /* remove centering since layout handles placement */
+    min-width: 300px; /* ensure grid doesn't collapse below a usable width */
+}
+
+/* Ensure the grid scales properly inside its flex container */
+.home-main .grid-container img {
+    max-width: 800px;
+    width: 100%;
+    height: auto;
+    display: block;
 }
