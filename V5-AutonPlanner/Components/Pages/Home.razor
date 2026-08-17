@@ -1,16 +1,12 @@
-﻿@page "/"
+@page "/"
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">V5-AutonPlanner</a>
     </div>
 </div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
 <!-- layout: sidebar beside image grid -->
 <div class="home-main">
   <div class="sidebar">
-    <NavMenu />
 
     <div class="sidebar-actions px-3 py-2">
       <button class="btn btn-primary" @onclick="Save">Save</button>
@@ -18,87 +14,106 @@
 
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <nav class="nav flex-column">
-            @foreach (var point in movepoints)
-            {
-                <a class="nav-link" href="#" @onclick="@(() => HighlightCell(point.Row, point.Column))">
-                    Row: @point.Row, Column: @point.Column
-                </a>
-            }
-            <div class="nav-item px-3">
-            </div>
-        </nav>
-    </div>
-  </div>
-
-  <div class="grid-container">
-  <!-- The background image -->
-  <img src="TopDown.png" alt="Top down view of the vex v5 override field">
-  
-  <!-- The grid overlay -->
-  <div class="grid-overlay">
-    @for (int row = 1; row <= 12*12; row++)
-    {
-      @for (int col = 1; col <= 12*12; col++)
-      {
-        var r = row;
-        var c = col;
-        // Highlight any cell that exists in movepoints
-        var isHighlighted = movepoints.Exists(mp => mp.Row == r && mp.Column == c);
-        var index = movepoints.FindIndex(mp => mp.Row == r && mp.Column == c);
-        var displayIndex = index >= 0 ? index + 1 : -1;
-        var classes = isHighlighted ? "grid-cell highlight" : "grid-cell";
-        <div class="@classes" @onclick="@((e) => CellClicked(r, c))">
-            @if (displayIndex > 0)
-            {
-                <span class="dot-label">@displayIndex</span>
-            }
+                @foreach (var point in Actions)
+                {
+                    
+                    <a class="nav-link" href="#">
+                        @GetActionString(point).GetAwaiter().GetResult()
+                    </a>
+                }
+            </nav>
         </div>
-      }
-    }
-  </div>
+    </div>
+    <div class="grid-container">
+    <img src="TopDown.png" alt="Top down view of the vex v5 override field">
+    <div class="grid-overlay" data-cols="144" data-rows="144">
+        @for (int x = 1; x <= 12 * 12; x++)
+        {
+            @for (int y = 1; y <= 12 * 12; y++)
+            {
+                var r = x;
+                var c = y;
+                // Highlight any cell that exists in movepoints
+                var isHighlighted = HighlightList.Exists(mp => mp.x == r && mp.y == c);
+                var index = HighlightList.FindIndex(mp => mp.x == r && mp.y == c);
+                var displayIndex = index >= 0 ? index + 1 : -1;
+                var classes = isHighlighted ? "grid-cell highlight" : "grid-cell";
+                <div class="@classes" @onclick="@((e) => CellClicked(r, c))">
+                    @if (displayIndex > 0)
+                    {
+                        <span class="dot-label">@displayIndex</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+    </div>
 </div>
-
-</div>
-@using System.Text.Json
 @code {
-    private void CellClicked(int row, int column)
+    List<(int x, int y)> HighlightList = new();
+    List<Action> Actions = new();
+    class Action
     {
-        Console.WriteLine($"Grid cell clicked: Row {row}, Column {column}");
-        // add the clicked cell to the move points list
-        movepoints.Add((row, column));
-
-        // highlight the clicked cell
-        HighlightCell(row, column);
+        public int type = 0; // 0 = goto(int,int), 1 = turn(int), 2 = wait(int), 3 = setclaw(bool), 4 = unused, 5 = intakeOn(), 6 = intakeOff(), 7 = moveClawTo(int)
+        public int genralInt1 = 0; // for goto, turn, wait, moveClawTo
+        public int y = 0; // for goto
+        public bool? clawState = null; // for setclaw
     }
-
-    // The currently highlighted cell (1-based). -1 means none.
-    private int highlightRow = -1;
-    private int highlightColumn = -1;
-
-    // List of move points as (row, column) tuples.
-    private List<(int Row, int Column)> movepoints = new();
-
-    // Highlight a specific cell (row, column) in blue.
-    public void HighlightCell(int row, int column)
+    async Task<string> GetActionString(Action action)
     {
-        highlightRow = row;
-        highlightColumn = column;
-        StateHasChanged();
+        if (action.type == 0)
+        {
+            return $"goto({action.genralInt1}, {action.y})";
+        }
+        else if (action.type == 1)
+        {
+            return $"turn({action.genralInt1})";
+        }
+        else if (action.type == 2)
+        {
+            return $"wait({action.genralInt1})";
+        }
+        else if (action.type == 3)
+        {
+            return $"setclaw({action.clawState})";
+        }
+        else if (action.type == 5)
+        {
+            return "intakeOn()";
+        }
+        else if (action.type == 6)
+        {
+            return "intakeOff()";
+        }
+        else if (action.type == 7)
+        {
+            return $"moveClawTo({action.genralInt1})";
+        }
+        else
+        {
+            return "NULL";
+        }
     }
-
-    // Optional: clear the highlight
-    public void ClearHighlight()
+    async Task CellClicked(int x, int y)
     {
-        highlightRow = -1;
-        highlightColumn = -1;
-        StateHasChanged();
+        HighlightList.Add((x, y));
+        var act = new Action();
+        act.genralInt1 = x;
+        act.y = y;
+        act.type = 0;
+        Actions.Add(act);
+        await InvokeAsync(StateHasChanged);
     }
-
-    // Save action (not implemented)
-    private void Save()
+    async Task Save()
     {
-        TextWriter writer = new StreamWriter("movepoints.json");
-        JsonSerializer.Serialize(writer, movepoints);
-        writer.Close();
+        //json/other save logic to the SD card that the bot can read
+        //i dont think json parsing is going to work with pros very well so im using the displaytype one instead
+        string savestr = "";
+        foreach (var act in Actions)
+        {
+            savestr += await GetActionString(act) + "\n";
+        }
+        int length = savestr.Split("\n").ElementAt(0).Length;
+        Console.WriteLine(savestr);
     }
 }

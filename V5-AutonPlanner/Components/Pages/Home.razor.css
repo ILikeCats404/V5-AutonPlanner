@@ -1,14 +1,20 @@
 .grid-container {
     position: relative;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    /* shrink-wrap to the image so the overlay exactly matches the image size */
+    display: inline-block;
+    vertical-align: top;
+    /* enforce an absolute maximum display size so the grid cannot exceed the image area */
+    max-width: 784px;
+    max-height: 782px;
+    overflow: hidden;
 }
 
 .grid-container img {
-    width: 100%;
-    height: auto;
     display: block;
+    /* make the image scale down to the container max size while preserving aspect ratio */
+    width: 100%;
+    max-width: 784px;
+    height: auto;
 }
 
 .grid-overlay {
@@ -99,16 +105,16 @@
 }
 
 .home-main .grid-container {
-    flex: 1 1 auto;
+    flex: 0 0 auto; /* do not stretch; size is determined by the image */
     max-width: none;
     margin: 0; /* remove centering since layout handles placement */
-    min-width: 300px; /* ensure grid doesn't collapse below a usable width */
 }
 
 /* Ensure the grid scales properly inside its flex container */
 .home-main .grid-container img {
-    max-width: 800px;
+    /* ensure image fills the constrained container and doesn't overflow */
     width: 100%;
+    max-width: 784px;
     height: auto;
     display: block;
 }

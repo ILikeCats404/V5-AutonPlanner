@@ -99,3 +99,28 @@ h1:focus {
         padding-left: env(safe-area-inset-left);
     }
 }
+
+/* App-wide background: red -> dark purple gradient */
+html, body {
+    min-height: 100%;
+    background: linear-gradient(135deg, #ff4d4d 0%, #7b1fa2 100%);
+    background-attachment: fixed;
+    color: #ffffff;
+}
+
+/* Force sidebar background globally in case component-scoped CSS is overridden */
+.home-main .sidebar, .sidebar {
+    background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%) !important;
+    color: #e6edf3 !important;
+    padding: 1rem;
+    min-width: 260px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.35);
+}
+
+.home-main .sidebar .nav-link, .sidebar .nav-link {
+    color: #cbd5e1 !important;
+}
+
+.home-main .sidebar .nav-link:hover, .sidebar .nav-link:hover {
+    color: #ffffff !important;
+}
