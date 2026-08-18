@@ -12,6 +12,37 @@
       <button class="btn btn-primary" @onclick="Save">Save</button>
     </div>
 
+    <!-- Action buttons (bound to nothing) -->
+    <div class="action-buttons px-3 py-2">
+      <!-- Drive: needs distance (in), speed -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-distance="@driveDistance" data-speed="@driveSpeed">Add Drive</button>
+
+      <!-- Turn: needs angle (deg), speed -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-angle="@turnAngle" data-speed="@turnSpeed">Add Turn</button>
+
+      <!-- Wait: needs duration (ms) -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-duration="@waitDuration">Add Wait</button>
+
+      <!-- Lift: needs height (units) -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-height="@liftHeight">Add Lift</button>
+
+      <!-- Drop: needs none or optional target -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-target="@dropTarget">Add Drop</button>
+
+      <!-- Rotate: needs degrees and speed -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-degrees="@rotateDegrees" data-speed="@rotateSpeed">Add Rotate</button>
+
+      <!-- Sensor Wait: needs sensor name and threshold -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              data-sensor="@sensorName" data-threshold="@sensorThreshold">Add Sensor Wait</button>
+    </div>
+
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <nav class="nav flex-column">
                 @foreach (var point in Actions)
@@ -52,6 +83,18 @@
 @code {
     List<(int x, int y)> HighlightList = new();
     List<Action> Actions = new();
+    // Placeholder variables for action arguments (defined so buttons can reference them)
+    private int driveDistance = 24; // inches
+    private int driveSpeed = 50; // percent
+    private int turnAngle = 90; // degrees
+    private int turnSpeed = 40; // percent
+    private int waitDuration = 1000; // milliseconds
+    private int liftHeight = 10; // arbitrary units
+    private string dropTarget = "default";
+    private int rotateDegrees = 180;
+    private int rotateSpeed = 60;
+    private string sensorName = "bumper";
+    private int sensorThreshold = 1;
     class Action
     {
         public int type = 0; // 0 = goto(int,int), 1 = turn(int), 2 = wait(int), 3 = setclaw(bool), 4 = unused, 5 = intakeOn(), 6 = intakeOff(), 7 = moveClawTo(int)
@@ -114,6 +157,6 @@
             savestr += await GetActionString(act) + "\n";
         }
         int length = savestr.Split("\n").ElementAt(0).Length;
-        Console.WriteLine(savestr);
+        File.WriteAllText(@"F:\config.txt",savestr);
     }
 }
