@@ -12,36 +12,9 @@
       <button class="btn btn-primary" @onclick="Save">Save</button>
     </div>
 
-    <!-- Action buttons (above image) -->
+    <!-- Compact instructions: click a grid cell to add a drive point or open the action menu -->
     <div class="action-buttons px-3 py-2">
-
-      <!-- Wait: needs duration (ms) -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="OpenModalWait">Add Wait</button>
-
-      <!-- Lift: needs height (deg) -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="OpenModalLift">Add Lift</button>
-
-      <!-- SetClaw: needs on/off -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="OpenModalSetClaw">Add SetClaw</button>
-
-      <!-- ClawFlip: needs on/off -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="OpenModalClawFlip">Add ClawFlip</button>
-
-      <!-- Rotate: needs degrees and speed -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="OpenModalRotate">Add Rotate</button>
-
-      <!-- Intake On -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="AddIntakeOn">Add Intake On</button>
-
-      <!-- Intake Off -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              @onclick="AddIntakeOff">Add Intake Off</button>
+      <div class="text-muted small">Click any cell on the field to add a drive point or to open a small action menu for inserting other actions.</div>
     </div>
 
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
@@ -56,7 +29,7 @@
             </nav>
         </div>
     </div>
-    <div class="grid-container">
+    <div class="grid-container" style="position:relative;">
     <img src="TopDown.png" alt="Top down view of the vex v5 override field">
     <div class="grid-overlay" data-cols="144" data-rows="144">
         @for (int x = 1; x <= 12 * 12; x++)
@@ -78,7 +51,52 @@
                 </div>
             }
         }
+
+
     </div>
+        <!-- SVG overlay for lines and numbered points -->
+        <svg style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;" viewBox="@($"0 0 {overlayImgWidth} {overlayImgHeight}")" preserveAspectRatio="none">
+            @if (HighlightList != null && HighlightList.Count > 0)
+            {
+                // The overlay coordinates assume the image is not flipped.
+                // Map Y directly: mappedY = y - 0.5 so points align with the image's top-to-bottom coordinates.
+                var rows = 12 * 12;
+                // Use pixel-accurate overlay computed by JS (image width/height and pixel points)
+                var imgW = overlayImgWidth;
+                var imgH = overlayImgHeight;
+                if (!string.IsNullOrEmpty(PolylinePointsPx))
+                {
+                    <polyline points="@PolylinePointsPx" fill="none" stroke="#ff4d4f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                }
+
+                @for (int i = 0; i < PixelPoints.Count; i++)
+                {
+                    var pp = PixelPoints[i];
+                    <circle cx="@pp.x" cy="@pp.y" r="6" fill="#1890ff" />
+                    <svg:text x="@pp.x" y="@(pp.y + 4)" font-size="12" fill="white" text-anchor="middle" alignment-baseline="middle">@((i + 1).ToString())</svg:text>
+                }
+            }
+    </svg>
+
+        @if (showCellMenu)
+        {
+            <div class="cell-menu" style="position:absolute; left:@(menuLeftPercent)% ; top:@(menuTopPercent)% ; transform:@(menuPlaceAbove ? "translate(-50%,-100%)" : "translate(-50%,0)"); background:rgba(0,0,0,0.75); color:white; padding:6px; border-radius:6px; z-index:30; pointer-events:auto;">
+                <div class="d-flex flex-column">
+                    <button class="btn btn-sm btn-primary mb-1" @onclick="MenuAddDrive">Drive here</button>
+                    <button class="btn btn-sm btn-outline-light mb-1" @onclick="MenuOpenModalWait">Add Wait</button>
+                    <button class="btn btn-sm btn-outline-light mb-1" @onclick="MenuOpenModalLift">Add Lift</button>
+                    <button class="btn btn-sm btn-outline-light mb-1" @onclick="MenuOpenModalSetClaw">Set Claw</button>
+                    <button class="btn btn-sm btn-outline-light mb-1" @onclick="MenuOpenModalClawFlip">Claw Flip</button>
+                    <button class="btn btn-sm btn-outline-light mb-1" @onclick="MenuOpenModalRotate">Rotate</button>
+                    <div class="d-flex">
+                        <button class="btn btn-sm btn-success me-1" @onclick="MenuAddIntakeOn">Intake On</button>
+                        <button class="btn btn-sm btn-danger" @onclick="MenuAddIntakeOff">Intake Off</button>
+                    </div>
+                    <button class="btn btn-sm btn-light mt-2" @onclick="CloseCellMenu">Cancel</button>
+                </div>
+            </div>
+        }
+
     </div>
 </div>
 
@@ -165,13 +183,30 @@
         </div>
     </div>
 }
+@inject IJSRuntime JS
+
 @code {
     List<(int x, int y)> HighlightList = new();
     List<Action> Actions = new();
 
+    // Pixel overlay data computed by JS
+    private double overlayImgWidth = 144;
+    private double overlayImgHeight = 144;
+    private List<(double x, double y)> PixelPoints = new();
+    private string PolylinePointsPx = string.Empty;
+    private int lastHighlightCount = 0;
+
     // Modal state
     private bool showModal = false;
     private string modalActionType = "";
+
+    // Inline cell menu state
+    private bool showCellMenu = false;
+    private double menuLeftPercent = 0;
+    private double menuTopPercent = 0;
+    private int menuGridX = 0;
+    private int menuGridY = 0;
+    private bool menuPlaceAbove = true;
 
     // Placeholder variables for action arguments (defined so buttons can reference them)
     private int driveDistance = 24; // inches
@@ -211,6 +246,67 @@
     private void OpenModalRotate()
     {
         OpenModal("Rotate");
+    }
+
+    private void CloseCellMenu()
+    {
+        showCellMenu = false;
+    }
+
+    private async Task MenuAddDrive()
+    {
+        // add drive point at menuGridX/menuGridY
+        HighlightList.Add((menuGridX, menuGridY));
+        var act = new Action();
+        act.genralInt1 = menuGridX;
+        act.y = menuGridY;
+        act.type = 0;
+        Actions.Add(act);
+        showCellMenu = false;
+        await UpdateOverlayAsync();
+        StateHasChanged();
+    }
+
+    private void MenuAddIntakeOn()
+    {
+        AddIntakeOn();
+        showCellMenu = false;
+    }
+
+    private void MenuAddIntakeOff()
+    {
+        AddIntakeOff();
+        showCellMenu = false;
+    }
+
+    private void MenuOpenModalWait()
+    {
+        CloseCellMenu();
+        OpenModalWait();
+    }
+
+    private void MenuOpenModalLift()
+    {
+        CloseCellMenu();
+        OpenModalLift();
+    }
+
+    private void MenuOpenModalSetClaw()
+    {
+        CloseCellMenu();
+        OpenModalSetClaw();
+    }
+
+    private void MenuOpenModalClawFlip()
+    {
+        CloseCellMenu();
+        OpenModalClawFlip();
+    }
+
+    private void MenuOpenModalRotate()
+    {
+        CloseCellMenu();
+        OpenModalRotate();
     }
     
     private void AddIntakeOn()
@@ -278,6 +374,22 @@
         public int y = 0; // for goto
         public bool? clawState = null; // for setclaw
     }
+
+    // Result returned from JS computePoints
+    class OverlayResult
+    {
+        public double width { get; set; }
+        public double height { get; set; }
+        public double[][] points { get; set; }
+    }
+
+    // Result object for menu position from JS
+    class MenuPosResult
+    {
+        public double leftPercent { get; set; }
+        public double topPercent { get; set; }
+        public bool placeAbove { get; set; }
+    }
     async Task<string> GetActionString(Action action)
     {
         if (action.type == 0)
@@ -327,24 +439,100 @@
     }
     async Task CellClicked(int x, int y)
     {
-        HighlightList.Add((x, y));
-        var act = new Action();
-        act.genralInt1 = x;
-        act.y = y;
-        act.type = 0;
-        Actions.Add(act);
+        // Show the small inline menu at the clicked cell instead of immediately adding an action.
+        var rows = 12 * 12;
+        menuGridX = x;
+        menuGridY = y;
+        // compute percentages for positioning the menu centered on the cell using JS helper
+        try
+        {
+            var pos = await JS.InvokeAsync<MenuPosResult>("gridOverlay.computeMenuPosition", x, y, null);
+            if (pos != null)
+            {
+                menuLeftPercent = pos.leftPercent;
+                menuTopPercent = pos.topPercent;
+                menuPlaceAbove = pos.placeAbove;
+            }
+        }
+        catch
+        {
+            // fallback to percent calculation (field = 144 inches)
+            menuLeftPercent = ((x - 0.5) / 144.0) * 100.0;
+            menuTopPercent = ((y - 0.5) / 144.0) * 100.0;
+            menuPlaceAbove = true;
+        }
+
+        showCellMenu = true;
         await InvokeAsync(StateHasChanged);
+    }
+
+    // Note: OnAfterRenderAsync removed to avoid hot-reload override issues.
+    // Overlay is updated when points are added (MenuAddDrive) or explicitly via UpdateOverlayAsync.
+
+    private async Task UpdateOverlayAsync()
+    {
+        try
+        {
+            var pts = HighlightList.Select(p => new { x = p.x, y = p.y }).ToArray();
+            var result = await JS.InvokeAsync<OverlayResult>("gridOverlay.computePoints", (object)pts, null);
+            if (result != null)
+            {
+                overlayImgWidth = result.width;
+                overlayImgHeight = result.height;
+                PixelPoints = result.points.Select(a => (a[0], a[1])).ToList();
+                PolylinePointsPx = string.Join(" ", PixelPoints.Select(p => $"{p.Item1},{p.Item2}"));
+            }
+        }
+        catch
+        {
+            // ignore JS errors
+        }
     }
     async Task Save()
     {
-        //json/other save logic to the SD card that the bot can read
-        //i dont think json parsing is going to work with pros very well so im using the displaytype one instead
-        string savestr = "";
+        // Save actions to a simple plain-text file.
+        // The first drive/goto point will be written as STARTINGPOINT(x,y)
+        // subsequent drive/goto points will be written as GOTO(x,y).
+        var lines = new List<string>();
+        bool startingPointWritten = false;
+
         foreach (var act in Actions)
         {
-            savestr += "\"" + await GetActionString(act) + "\\n\",\n";
+            if (act.type == 0)
+            {
+                // drive/goto action
+                if (!startingPointWritten)
+                {
+                    lines.Add($"STARTINGPOINT({act.genralInt1},{act.y})");
+                    startingPointWritten = true;
+                }
+                else
+                {
+                    lines.Add($"GOTO({act.genralInt1},{act.y})");
+                }
+            }
+            else
+            {
+                // Non-drive actions are written using the display string produced by GetActionString
+                lines.Add(await GetActionString(act));
+            }
         }
-        int length = savestr.Split("\n").ElementAt(0).Length;
-        File.WriteAllText(@"F:\config.txt",savestr);
+
+        try
+        {
+            var fallback = System.IO.Path.Combine(AppContext.BaseDirectory, "config.txt");
+            File.WriteAllLines(fallback, lines);
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Save Your File",
+                File = new ShareFile(fallback)
+            });
+        }
+        catch (Exception)
+        {
+            // If writing fails (e.g. no F:), fall back to writing in the app folder so the user can inspect
+            var fallback = System.IO.Path.Combine(AppContext.BaseDirectory, "config.txt");
+            File.WriteAllLines(fallback, lines);
+        }
     }
 }

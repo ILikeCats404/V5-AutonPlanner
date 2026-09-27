@@ -35,9 +35,9 @@
   /* shrink-wrap to the image so the overlay matches the image size exactly */
   display: inline-block;
   vertical-align: top;
-  /* limit container (and therefore overlay) to a fixed maximum size */
-  max-width: 784px;
-  max-height: 782px;
+  /* allow the image to determine size so all 144x144 points are visible */
+  max-width: none;
+  max-height: none;
   overflow: hidden;
 }
 
@@ -72,7 +72,7 @@
   z-index: 2; /* sit above the image */
   overflow: hidden; /* clip any accidental overflow */
   box-sizing: border-box;
-  pointer-events: none; /* disable clicks on the overlay container itself */
+  pointer-events: auto; /* allow overlay to receive events immediately */
 }
 
 .grid-cell {

@@ -15,7 +15,6 @@
     width: 100%;
     max-width: 784px;
     height: auto;
-    transform: scaleY(-1);
 }
 
 .grid-overlay {
