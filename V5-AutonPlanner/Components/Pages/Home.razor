@@ -12,42 +12,43 @@
       <button class="btn btn-primary" @onclick="Save">Save</button>
     </div>
 
-    <!-- Action buttons (bound to nothing) -->
+    <!-- Action buttons (above image) -->
     <div class="action-buttons px-3 py-2">
-      <!-- Drive: needs distance (in), speed -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              data-distance="@driveDistance" data-speed="@driveSpeed">Add Drive</button>
-
-      <!-- Turn: needs angle (deg), speed -->
-      <button type="button" class="btn btn-outline-light mb-2" 
-              data-angle="@turnAngle" data-speed="@turnSpeed">Add Turn</button>
 
       <!-- Wait: needs duration (ms) -->
       <button type="button" class="btn btn-outline-light mb-2" 
-              data-duration="@waitDuration">Add Wait</button>
+              @onclick="OpenModalWait">Add Wait</button>
 
-      <!-- Lift: needs height (units) -->
+      <!-- Lift: needs height (deg) -->
       <button type="button" class="btn btn-outline-light mb-2" 
-              data-height="@liftHeight">Add Lift</button>
+              @onclick="OpenModalLift">Add Lift</button>
 
-      <!-- Drop: needs none or optional target -->
+      <!-- SetClaw: needs on/off -->
       <button type="button" class="btn btn-outline-light mb-2" 
-              data-target="@dropTarget">Add Drop</button>
+              @onclick="OpenModalSetClaw">Add SetClaw</button>
+
+      <!-- ClawFlip: needs on/off -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              @onclick="OpenModalClawFlip">Add ClawFlip</button>
 
       <!-- Rotate: needs degrees and speed -->
       <button type="button" class="btn btn-outline-light mb-2" 
-              data-degrees="@rotateDegrees" data-speed="@rotateSpeed">Add Rotate</button>
+              @onclick="OpenModalRotate">Add Rotate</button>
 
-      <!-- Sensor Wait: needs sensor name and threshold -->
+      <!-- Intake On -->
       <button type="button" class="btn btn-outline-light mb-2" 
-              data-sensor="@sensorName" data-threshold="@sensorThreshold">Add Sensor Wait</button>
+              @onclick="AddIntakeOn">Add Intake On</button>
+
+      <!-- Intake Off -->
+      <button type="button" class="btn btn-outline-light mb-2" 
+              @onclick="AddIntakeOff">Add Intake Off</button>
     </div>
 
     <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
         <nav class="nav flex-column">
                 @foreach (var point in Actions)
                 {
-                    
+
                     <a class="nav-link" href="#">
                         @GetActionString(point).GetAwaiter().GetResult()
                     </a>
@@ -80,25 +81,200 @@
     </div>
     </div>
 </div>
+
+<!-- Modal for action arguments -->
+@if (showModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure @modalActionType</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (modalActionType == "Drive")
+                {
+                    <h6 class="modal-section-title">Movement Parameters</h6>
+                    <div class="mb-3">
+                        <label for="driveDistInput" class="form-label">Distance (inches)</label>
+                        <input type="number" class="form-control" id="driveDistInput" @bind="driveDistance" />
+                    </div>
+                    <h6 class="modal-section-title">Speed Settings</h6>
+                    <div class="mb-3">
+                        <label for="driveSpeedInput" class="form-label">Speed (%)</label>
+                        <input type="number" class="form-control" id="driveSpeedInput" @bind="driveSpeed" />
+                    </div>
+                }
+                else if (modalActionType == "Wait")
+                {
+                    <h6 class="modal-section-title">Timing Parameters</h6>
+                    <div class="mb-3">
+                        <label for="waitDurationInput" class="form-label">Duration (milliseconds)</label>
+                        <input type="number" class="form-control" id="waitDurationInput" @bind="waitDuration" />
+                    </div>
+                }
+                else if (modalActionType == "Lift")
+                {
+                    <h6 class="modal-section-title">Lift Parameters</h6>
+                    <div class="mb-3">
+                        <label for="liftHeightInput" class="form-label">Height (deg)</label>
+                        <input type="number" class="form-control" id="liftHeightInput" @bind="liftHeight" />
+                    </div>
+                }
+                else if (modalActionType == "SetClaw")
+                {
+                    <h6 class="modal-section-title">Claw State</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Set Claw to:</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="clawState" id="clawOn" value="true" @onchange="@((ChangeEventArgs e) => clawStateToggle = e.Value?.ToString() == "true")" />
+                            <label class="btn btn-outline-primary" for="clawOn">On</label>
+
+                            <input type="radio" class="btn-check" name="clawState" id="clawOff" value="false" @onchange="@((ChangeEventArgs e) => clawStateToggle = e.Value?.ToString() == "false")" />
+                            <label class="btn btn-outline-primary" for="clawOff">Off</label>
+                        </div>
+                    </div>
+                }
+                else if (modalActionType == "ClawFlip")
+                {
+                    <h6 class="modal-section-title">Claw Flip State</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Flip Claw to:</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="clawFlipState" id="clawFlipOn" value="true" @onchange="@((ChangeEventArgs e) => clawFlipStateToggle = e.Value?.ToString() == "true")" />
+                            <label class="btn btn-outline-primary" for="clawFlipOn">On</label>
+
+                            <input type="radio" class="btn-check" name="clawFlipState" id="clawFlipOff" value="false" @onchange="@((ChangeEventArgs e) => clawFlipStateToggle = e.Value?.ToString() == "false")" />
+                            <label class="btn btn-outline-primary" for="clawFlipOff">Off</label>
+                        </div>
+                    </div>
+                }
+                else if (modalActionType == "Rotate")
+                {
+                    <h6 class="modal-section-title">Rotation Parameters</h6>
+                    <div class="mb-3">
+                        <label for="rotateDegreesInput" class="form-label">Degrees</label>
+                        <input type="number" class="form-control" id="rotateDegreesInput" @bind="rotateDegrees" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="ConfirmAction">Add Action</button>
+            </div>
+        </div>
+    </div>
+}
 @code {
     List<(int x, int y)> HighlightList = new();
     List<Action> Actions = new();
+
+    // Modal state
+    private bool showModal = false;
+    private string modalActionType = "";
+
     // Placeholder variables for action arguments (defined so buttons can reference them)
     private int driveDistance = 24; // inches
     private int driveSpeed = 50; // percent
-    private int turnAngle = 90; // degrees
-    private int turnSpeed = 40; // percent
     private int waitDuration = 1000; // milliseconds
-    private int liftHeight = 10; // arbitrary units
-    private string dropTarget = "default";
+    private int liftHeight = 10; // degrees
+    private bool clawStateToggle = true; // for setclaw on/off
+    private bool clawFlipStateToggle = true; // for clawflip on/off
     private int rotateDegrees = 180;
-    private int rotateSpeed = 60;
-    private string sensorName = "bumper";
-    private int sensorThreshold = 1;
+
+    private void OpenModal(string actionType)
+    {
+        modalActionType = actionType;
+        showModal = true;
+    }
+
+    private void OpenModalWait()
+    {
+        OpenModal("Wait");
+    }
+
+    private void OpenModalLift()
+    {
+        OpenModal("Lift");
+    }
+
+    private void OpenModalSetClaw()
+    {
+        OpenModal("SetClaw");
+    }
+
+    private void OpenModalClawFlip()
+    {
+        OpenModal("ClawFlip");
+    }
+
+    private void OpenModalRotate()
+    {
+        OpenModal("Rotate");
+    }
+    
+    private void AddIntakeOn()
+    {
+        var act = new Action();
+        act.type = 5;
+        Actions.Add(act);
+        StateHasChanged();
+    }
+
+    private void AddIntakeOff()
+    {
+        var act = new Action();
+        act.type = 6;
+        Actions.Add(act);
+        StateHasChanged();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private void ConfirmAction()
+    {
+        // Handle the action based on type
+        var act = new Action();
+
+        switch (modalActionType)
+        {
+            case "Drive":
+                act.type = 0;
+                act.genralInt1 = driveDistance;
+                break;
+            case "Wait":
+                act.type = 2;
+                act.genralInt1 = waitDuration;
+                break;
+            case "Lift":
+                act.type = 4;
+                act.genralInt1 = liftHeight;
+                break;
+            case "SetClaw":
+                act.type = 3;
+                act.clawState = clawStateToggle;
+                break;
+            case "ClawFlip":
+                act.type = 8;
+                act.clawState = clawFlipStateToggle;
+                break;
+            case "Rotate":
+                act.type = 1;
+                act.genralInt1 = rotateDegrees;
+                break;
+        }
+
+        Actions.Add(act);
+        CloseModal();
+        StateHasChanged();
+    }
     class Action
     {
-        public int type = 0; // 0 = goto(int,int), 1 = turn(int), 2 = wait(int), 3 = setclaw(bool), 4 = unused, 5 = intakeOn(), 6 = intakeOff(), 7 = moveClawTo(int)
-        public int genralInt1 = 0; // for goto, turn, wait, moveClawTo
+        public int type = 0; // 0 = goto(int,int), 1 = rotate(int), 2 = wait(int), 3 = setclaw(bool), 4 = lift(int), 5 = intakeon(), 6 = intakeoff(), 7 = moveClawTo(int)
+        public int genralInt1 = 0; // for goto, rotate, wait, lift, moveClawTo
         public int y = 0; // for goto
         public bool? clawState = null; // for setclaw
     }
@@ -110,7 +286,7 @@
         }
         else if (action.type == 1)
         {
-            return $"turn({action.genralInt1})";
+            return $"rotate({action.genralInt1})";
         }
         else if (action.type == 2)
         {
@@ -118,19 +294,31 @@
         }
         else if (action.type == 3)
         {
-            return $"setclaw({action.clawState})";
+            
+            string clawState = action.clawState ?? false ? "true" : "false";
+            return $"setclaw({clawState})";
+        }
+        else if (action.type == 4)
+        {
+            return $"lift({action.genralInt1})";
         }
         else if (action.type == 5)
         {
-            return "intakeOn()";
+            return "intakeon()";
         }
         else if (action.type == 6)
         {
-            return "intakeOff()";
+            return "intakeoff()";
         }
         else if (action.type == 7)
         {
             return $"moveClawTo({action.genralInt1})";
+        }
+        else if (action.type == 8)
+        {
+            string clawState = action.clawState ?? false ? "true" : "false";
+            return $"clawflip({clawState})";
+            //return $"({action})"
         }
         else
         {
@@ -154,7 +342,7 @@
         string savestr = "";
         foreach (var act in Actions)
         {
-            savestr += await GetActionString(act) + "\n";
+            savestr += "\"" + await GetActionString(act) + "\\n\",\n";
         }
         int length = savestr.Split("\n").ElementAt(0).Length;
         File.WriteAllText(@"F:\config.txt",savestr);
